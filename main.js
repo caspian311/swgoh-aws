@@ -9,6 +9,8 @@ const ec2 = new AWS.EC2()
 const sgName = 'test3_sg'
 const keyName = 'test3_key'
 
+
+
 createSecurityGroup(sgName, 4567)
     .then(() => {
         return createKeyPair(keyName)
