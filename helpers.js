@@ -11,6 +11,7 @@ const ec2 = new AWS.EC2()
 const autoScaling = new AWS.AutoScaling()
 const iam = new AWS.IAM()
 const elb = new AWS.ELBv2()
+const rds = new AWS.RDS()
 
 function createAutoScalingGroup(paramsData) {
   const params = {
@@ -33,7 +34,7 @@ function createAutoScalingGroup(paramsData) {
         reject(err)
       } else {
         console.log('autoscaling group created', data)
-  
+
         resolve(paramsData)
       }
     })
@@ -56,6 +57,7 @@ function createLoadBalancer(paramsData) {
       } else {
         console.log('Load balancer created', data)
         paramsData.lbArn = data.LoadBalancers[0].LoadBalancerArn
+        paramsData.lbDNS = data.LoadBalancers[0].DNSName
 
         resolve(paramsData)
       }
@@ -338,6 +340,98 @@ function createASGPolicy(paramsData) {
   })
 }
 
+function createDBSecurityGroup(paramsData) {
+  const params = {
+    Description: paramsData.dbSgName,
+    GroupName: paramsData.dbSgName
+  }
+
+  return new Promise((resolve, reject) => {
+    ec2.createSecurityGroup(params, (err, data) => {
+      if (err) {
+        reject(err)
+      } else {
+        console.log('security DB group created: ', data)
+
+        const params = {
+          GroupId: data.GroupId,
+          IpPermissions: [{
+            IpProtocol: 'tcp',
+            FromPort: 3306,
+            ToPort: 3306,
+            IpRanges: [{
+              CidrIp: '0.0.0.0/0'
+            }]
+          }]
+        }
+        ec2.authorizeSecurityGroupIngress(params, (err) => {
+          if (err) {
+            reject(err)
+          } else {
+            console.log('  Ingress set on security group')
+            paramsData.dbSgId = data.GroupId
+            resolve(paramsData)
+          }
+        })
+      }
+    })
+  })
+}
+
+function createDatabase(paramsData) {
+  const params = {
+    AllocatedStorage: 5,
+    DBInstanceClass: 'db.t2.micro',
+    DBInstanceIdentifier: paramsData.dbName,
+    Engine: 'mysql',
+    DBName: paramsData.dbName,
+    VpcSecurityGroupIds: [paramsData.dbSgId],
+    MasterUsername: 'root',
+    MasterUserPassword: 'password'
+  }
+
+  return new Promise((resolve, reject) => {
+    rds.createDBInstance(params, (err, data) => {
+      if (err) {
+        reject(err)
+      } else {
+        process.stdout.write('Waiting to create database...')
+
+        const params = {
+          DBInstanceIdentifier: paramsData.dbName
+        }
+
+        const maxTries = 100
+        var tries = 0
+
+        var intervalId = setInterval(() => {
+          tries += 1
+
+          rds.describeDBInstances(params, (err, data) => {
+            process.stdout.write('.')
+            if (err) {
+              console.log('database didn\'t create correctly')
+              reject(err)
+            } else if (tries === maxTries) {
+              clearInterval(intervalId)
+
+              console.log(' timed out')
+              reject('Took too long to start the database')
+            } else if (data.DBInstances[0].Endpoint !== undefined) {
+              clearInterval(intervalId)
+
+              console.log(' database created!')
+
+              paramsData.dbEndpoint = data.DBInstances[0].Endpoint.Address
+              resolve(paramsData)
+            }
+          })
+        }, 10000)
+      }
+    })
+  })
+}
+
 module.exports = {
   persistKeyPair,
   createIamRole,
@@ -349,5 +443,7 @@ module.exports = {
   createTargetGroup,
   createListener,
   createAutoScalingGroup,
-  createASGPolicy
+  createASGPolicy,
+  createDBSecurityGroup,
+  createDatabase
 }

@@ -11,6 +11,8 @@ const paramsData = {
     roleName: 'test3_admin_role',
     amiImageId: 'ami-0323c3dd2da7fb37d',
     launchConfigurationName: 'test3_lc',
+    dbName: 'test5Db',
+    dbSgName: 'test5_sg_db',
     ec2Port: 4567,
     lbPort: 80,
     listenerPort: 80,
@@ -25,17 +27,19 @@ const paramsData = {
 // aws iam delete-instance-profile --instance-profile-name test3_admin_role_profile
 
 doit(paramsData)
-    .then(helpers.createIamRole)
-    .then(helpers.createKeyPair)
-    .then(helpers.persistKeyPair)
-    .then(helpers.createEC2SecurityGroup)
-    .then(helpers.createLBSecurityGroup)
-    .then(helpers.createLaunchConfiguration)
-    .then(helpers.createLoadBalancer)
-    .then(helpers.createTargetGroup)
-    .then(helpers.createListener)
-    .then(helpers.createAutoScalingGroup)
-    .then(helpers.createASGPolicy)
+    // .then(helpers.createIamRole)
+    // .then(helpers.createKeyPair)
+    // .then(helpers.persistKeyPair)
+    // .then(helpers.createEC2SecurityGroup)
+    // .then(helpers.createLBSecurityGroup)
+    .then(helpers.createDBSecurityGroup)
+    // .then(helpers.createLaunchConfiguration)
+    // .then(helpers.createLoadBalancer)
+    // .then(helpers.createTargetGroup)
+    // .then(helpers.createListener)
+    // .then(helpers.createAutoScalingGroup)
+    // .then(helpers.createASGPolicy)
+    .then(helpers.createDatabase)
     .then(data => console.log(data))
     .catch(message => {
         console.log('Failed...', message)
