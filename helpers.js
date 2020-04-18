@@ -3,6 +3,8 @@ const path = require('path')
 const os = require('os')
 const AWS = require('aws-sdk')
 
+const userData = require('./user_data')
+
 AWS.config.update({
   region: 'us-east-1'
 })
@@ -379,6 +381,9 @@ function createDBSecurityGroup(paramsData) {
 }
 
 function createDatabase(paramsData) {
+  const username = 'root'
+  const password = 'password'
+
   const params = {
     AllocatedStorage: 5,
     DBInstanceClass: 'db.t2.micro',
@@ -386,8 +391,8 @@ function createDatabase(paramsData) {
     Engine: 'mysql',
     DBName: paramsData.dbName,
     VpcSecurityGroupIds: [paramsData.dbSgId],
-    MasterUsername: 'root',
-    MasterUserPassword: 'password'
+    MasterUsername: username,
+    MasterUserPassword: password
   }
 
   return new Promise((resolve, reject) => {
@@ -423,12 +428,25 @@ function createDatabase(paramsData) {
               console.log(' database created!')
 
               paramsData.dbEndpoint = data.DBInstances[0].Endpoint.Address
+              paramsData.dbUsername = username
+              paramsData.dbPassword = password
               resolve(paramsData)
             }
           })
         }, 10000)
       }
     })
+  })
+}
+
+function prepareUserData(paramsData) {
+  return new Promise(resolve => {
+    userData.getUserData(paramsData.dbEndpoint, paramsData.dbUsername, paramsData.dbPassword)
+      .then((base64EncodedUserData) => {
+        paramsData.userData = base64EncodedUserData
+
+        resolve(paramsData)
+      })
   })
 }
 
@@ -445,5 +463,6 @@ module.exports = {
   createAutoScalingGroup,
   createASGPolicy,
   createDBSecurityGroup,
-  createDatabase
+  createDatabase,
+  prepareUserData
 }
