@@ -1,6 +1,6 @@
 const fs = require('fs')
 
-function getUserData(databaseUrl, databaseUsername, databasePassword) {
+function getUserData(databaseUrl, databaseName, databaseUsername, databasePassword) {
     return new Promise((resolve, reject) => {
         fs.readFile('./scripts/bootstrap.sh', (err, data) => {
             if (err) reject(err)
@@ -9,7 +9,8 @@ function getUserData(databaseUrl, databaseUsername, databasePassword) {
                 let [before, after] = fileContent.split('{environment-variables}')
     
                 let environmentVariables = [ 
-                    `-e "DATABASE_URL=${databaseUrl}"`, 
+                    `-e "DATABASE_HOST=${databaseUrl}"`, 
+                    `-e "DATABASE_NAME=${databaseName}"`, 
                     `-e "DATABASE_USER=${databaseUsername}"`, 
                     `-e "DATABASE_PASSWORD=${databasePassword}"` 
                 ].join(' ')

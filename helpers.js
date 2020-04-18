@@ -441,7 +441,7 @@ function createDatabase(paramsData) {
 
 function prepareUserData(paramsData) {
   return new Promise(resolve => {
-    userData.getUserData(paramsData.dbEndpoint, paramsData.dbUsername, paramsData.dbPassword)
+    userData.getUserData(paramsData.dbEndpoint, paramsData.dbName, paramsData.dbUsername, paramsData.dbPassword)
       .then((base64EncodedUserData) => {
         paramsData.userData = base64EncodedUserData
 
