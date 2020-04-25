@@ -13,6 +13,7 @@ const paramsData = {
     launchConfigurationName: 'test3_lc',
     dbName: 'test3Db',
     dbSgName: 'test3_sg_db',
+    s3BucketName: 'swgoh.coffeemonkey.net',
     ec2Port: 4567,
     lbPort: 80,
     listenerPort: 80,
@@ -40,6 +41,7 @@ doit(paramsData)
     .then(helpers.createListener)
     .then(helpers.createAutoScalingGroup)
     .then(helpers.createASGPolicy)
+    .then(helpers.createS3BucketSite)
     .then(data => console.log(data))
     .catch(message => {
         console.log('Failed...', message)

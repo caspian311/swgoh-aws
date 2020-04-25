@@ -14,6 +14,7 @@ const autoScaling = new AWS.AutoScaling()
 const iam = new AWS.IAM()
 const elb = new AWS.ELBv2()
 const rds = new AWS.RDS()
+const s3 = new AWS.S3()
 
 function createAutoScalingGroup(paramsData) {
   const params = {
@@ -450,6 +451,67 @@ function prepareUserData(paramsData) {
   })
 }
 
+function createS3BucketSite(paramsData) {
+  const createParams = {
+    Bucket: paramsData.s3BucketName,
+    ACL: 'public-read'
+  };
+
+  const websiteParams = {
+    Bucket: paramsData.s3BucketName,
+    WebsiteConfiguration: {
+      ErrorDocument: {
+        Key: "error.html"
+      },
+      IndexDocument: {
+        Suffix: "index.html"
+      }
+    }
+  };
+
+  const policyParams = {
+    Bucket: paramsData.s3BucketName,
+    Policy: `{  
+      "Version": "2012-10-17",
+      "Statement": [{
+        "Sid": "AddPerm",
+        "Effect": "Allow",
+        "Principal": "*",
+        "Action": "s3:GetObject",
+        "Resource": "arn:aws:s3:::swgoh.coffeemonkey.net/*"
+      }]
+    }`
+  }
+
+  return new Promise((resolve, reject) => {
+    s3.createBucket(createParams, function (err, data) {
+      if (err) {
+        reject(err)
+      } else {
+        console.log('S3 Bucket created')
+
+        s3.putBucketWebsite(websiteParams, function (err, data) {
+          if (err) {
+            reject(err)
+          } else {
+            console.log('S3 website configured')
+
+            s3.putBucketPolicy(policyParams, function (err, data) {
+              if (err) {
+                reject(err)
+              } else {
+                console.log('S3 website policy updated')
+
+                resolve(paramsData)
+              }
+            })
+          }
+        });
+      }
+    });
+  })
+}
+
 module.exports = {
   persistKeyPair,
   createIamRole,
@@ -464,5 +526,6 @@ module.exports = {
   createASGPolicy,
   createDBSecurityGroup,
   createDatabase,
-  prepareUserData
+  prepareUserData,
+  createS3BucketSite
 }
